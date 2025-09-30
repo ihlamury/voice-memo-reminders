@@ -1,0 +1,22 @@
+{
+  "reminders": [
+    {
+      "title": "Buy groceries - milk, eggs, bread, and coffee",
+      "notes": "Category: shopping\nPriority: medium",
+      "dueDate": "tomorrow",
+      "list": "Shopping"
+    },
+    {
+      "title": "Call the dentist to schedule a cleaning",
+      "notes": "Category: health\nPriority: medium",
+      "dueDate": "Monday",
+      "list": "Health"
+    },
+    {
+      "title": "Email Sarah about the project update",
+      "notes": "Category: work\nPriority: medium",
+      "dueDate": "end of week",
+      "list": "Work"
+    }
+  ]
+}

@@ -209,3 +209,6 @@ __marimo__/
 # Generated output files
 *_output.json
 test_output.json
+
+# iCloud Drive - don't commit synced files
+**/Mobile Documents/**

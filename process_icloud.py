@@ -1,7 +1,9 @@
 """
 iCloud Drive-based voice memo processor
-Monitors iCloud Drive for new transcriptions and processes them automatically
+Monitors iCloud Drive for new audio files from Voice Memos and processes them
+Works with native Voice Memos app - no paid apps required
 """
+from src.audio_transcriber import AudioTranscriber
 from src.voice_processor import VoiceProcessor
 from src.reminder_manager import ReminderManager
 import os
@@ -10,7 +12,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 
-# iCloud Drive paths
+# iCloud Drive paths - now looking for audio files
 ICLOUD_BASE = os.path.expanduser("~/Library/Mobile Documents/com~apple~CloudDocs/VoiceMemos")
 INPUT_FOLDER = os.path.join(ICLOUD_BASE, "input")
 OUTPUT_FOLDER = os.path.join(ICLOUD_BASE, "output")
@@ -23,106 +25,116 @@ def ensure_folders_exist():
     print(f"   Input:  {INPUT_FOLDER}")
     print(f"   Output: {OUTPUT_FOLDER}")
 
-def process_file(input_path):
+def process_audio_file(audio_path):
     """
-    Process a single transcription file
+    Process a voice memo audio file
     
     Args:
-        input_path (str): Path to input transcription file
+        audio_path (str): Path to audio file
         
     Returns:
         str: Path to output file, or None if failed
     """
     try:
-        # Read transcription
-        print(f"\n📖 Reading: {os.path.basename(input_path)}")
-        with open(input_path, 'r', encoding='utf-8') as f:
-            transcription = f.read().strip()
+        print(f"\n🎙️  Processing: {os.path.basename(audio_path)}")
+        
+        # Step 1: Transcribe audio
+        print("📝 Transcribing audio with Whisper...")
+        transcriber = AudioTranscriber()
+        transcription = transcriber.transcribe_audio(audio_path)
         
         if not transcription:
-            print("⚠️  File is empty, skipping...")
+            print("⚠️  Transcription failed, skipping...")
             return None
         
-        print(f"   Length: {len(transcription)} characters")
+        print(f"   Transcription length: {len(transcription)} characters")
+        print(f"   Preview: {transcription[:100]}...")
         
-        # Initialize processors
-        voice_processor = VoiceProcessor()
-        reminder_manager = ReminderManager()
-        
-        # Process with Claude
+        # Step 2: Process with Claude
         print("🤖 Processing with Claude...")
+        voice_processor = VoiceProcessor()
         categorized_tasks = voice_processor.process_transcription(transcription)
         
-        # Format reminders
-        print("📝 Formatting reminders...")
-        formatted_reminders = reminder_manager.format_reminders(categorized_tasks)
+        # Step 3: Format output
+        print("📝 Formatting results...")
+        reminder_manager = ReminderManager()
+        formatted_results = reminder_manager.format_reminders(categorized_tasks)
         
-        # Generate output filename
+        # Step 4: Save results
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        input_basename = os.path.splitext(os.path.basename(input_path))[0]
-        output_filename = f"{input_basename}_reminders_{timestamp}.json"
+        input_basename = os.path.splitext(os.path.basename(audio_path))[0]
+        output_filename = f"{input_basename}_processed_{timestamp}.json"
         output_path = os.path.join(OUTPUT_FOLDER, output_filename)
         
-        # Write output
         with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(formatted_reminders)
+            f.write(formatted_results)
         
-        print(f"✅ Results written to: {os.path.basename(output_path)}")
+        print(f"✅ Results saved: {os.path.basename(output_path)}")
         
-        # Optionally, move processed input to archive or delete
-        # os.remove(input_path)  # Uncomment to auto-delete after processing
+        # Optionally, archive or delete processed audio
+        # os.remove(audio_path)  # Uncomment to auto-delete after processing
         
         return output_path
         
     except Exception as e:
-        print(f"❌ Error processing {input_path}: {e}")
+        print(f"❌ Error processing {audio_path}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def process_all_pending():
-    """Process all files currently in the input folder"""
+    """Process all audio files currently in the input folder"""
     ensure_folders_exist()
     
-    # Get all .txt files in input folder
-    input_files = list(Path(INPUT_FOLDER).glob("*.txt"))
+    # Get all audio files - Voice Memos typically use .m4a
+    audio_extensions = ['*.m4a', '*.mp3', '*.wav', '*.m4v']
+    input_files = []
+    
+    for ext in audio_extensions:
+        input_files.extend(list(Path(INPUT_FOLDER).glob(ext)))
     
     if not input_files:
-        print("\n📭 No files to process in input folder")
+        print("\n📭 No audio files to process in input folder")
         return
     
-    print(f"\n📬 Found {len(input_files)} file(s) to process")
+    print(f"\n📬 Found {len(input_files)} audio file(s) to process")
     
-    for input_file in input_files:
-        process_file(str(input_file))
+    for audio_file in input_files:
+        process_audio_file(str(audio_file))
         print()  # Blank line between files
     
     print("🎉 All files processed!")
 
-def watch_mode(check_interval=10):
+def watch_mode(check_interval=30):
     """
-    Watch mode - continuously monitor input folder for new files
+    Watch mode - continuously monitor input folder for new audio files
     
     Args:
-        check_interval (int): Seconds between checks
+        check_interval (int): Seconds between checks (30s default for audio files)
     """
     ensure_folders_exist()
     
     print(f"\n👀 Watch mode started - checking every {check_interval} seconds")
+    print("   Monitoring for: .m4a, .mp3, .wav files")
     print("   Press Ctrl+C to stop\n")
     
     processed_files = set()
+    audio_extensions = ['*.m4a', '*.mp3', '*.wav', '*.m4v']
     
     try:
         while True:
-            # Get current files
-            current_files = set(Path(INPUT_FOLDER).glob("*.txt"))
+            # Get current audio files
+            current_files = set()
+            for ext in audio_extensions:
+                current_files.update(Path(INPUT_FOLDER).glob(ext))
             
             # Find new files
             new_files = current_files - processed_files
             
             if new_files:
-                print(f"📬 Found {len(new_files)} new file(s)!")
+                print(f"📬 Found {len(new_files)} new audio file(s)!")
                 for new_file in new_files:
-                    process_file(str(new_file))
+                    process_audio_file(str(new_file))
                     processed_files.add(new_file)
                     print()
             

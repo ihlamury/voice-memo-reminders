@@ -1,38 +1,39 @@
-# Voice Memo to Reminders Automation
+# Voice Memo to Calendar Automation
 
-Apple Watch voice memo processing with Claude AI for intelligent task categorization and iOS Reminders integration.
+Apple Watch voice memo processing with AI for intelligent task categorization and Google Calendar integration.
 
 ## Overview
 
-Record voice memos on your Apple Watch, and automatically convert them into organized reminders using AI. The system transcribes your voice, categorizes tasks, and adds them to your iOS Reminders app.
+Record voice memos on your Apple Watch, and automatically convert them into organized calendar events using AI. The system transcribes your voice, categorizes tasks, extracts due dates, and creates calendar events.
 
 ## Project Structure
 voice-memo-reminders/
 ├── src/
-│   ├── voice_processor.py    # Claude API integration & categorization
-│   └── reminder_manager.py   # Format output for iOS Shortcuts
-├── main.py                   # Simple test script
-├── process_file.py           # File-based processing
-├── process_icloud.py         # iCloud Drive integration with watch mode
-└── requirements.txt          # Python dependencies
+│   ├── audio_transcriber.py  # Whisper API for audio transcription
+│   ├── voice_processor.py     # Claude API for task categorization
+│   └── reminder_manager.py    # Output formatting
+├── process_file.py            # File-based processing (text input)
+├── process_icloud.py          # iCloud Drive integration (audio input)
+├── main.py                    # Simple test script
+└── requirements.txt           # Python dependencies
 
-## Workflow
+## Current Workflow
 
 1. **Record**: Voice memo on Apple Watch using Voice Memos app (built-in, free)
-2. **Transcribe**: iOS Shortcuts uses built-in speech recognition to create text
-3. **Save**: iOS Shortcuts saves transcription to iCloud Drive
-4. **Process**: Python script sends transcription to Claude for categorization
-5. **Format**: Structures data with categories, priorities, and due dates
-6. **Create**: iOS Shortcuts reads results and adds to Reminders app
+2. **Transfer**: Voice memo syncs to Mac via iCloud Drive
+3. **Transcribe**: Python script uses Whisper API to convert audio to text
+4. **Analyze**: Claude AI extracts tasks, priorities, categories, and due dates
+5. **Create**: Calendar events generated (Google Calendar integration coming soon)
 
 ## Features
 
 - 🎙️ Works with native Voice Memos app (no paid apps required)
 - 🤖 AI-powered task categorization using Claude
+- 📝 Automatic transcription with OpenAI Whisper
 - 📂 Automatic organization by category (work, personal, shopping, health, etc.)
 - ⭐ Priority detection (high, medium, low)
 - 📅 Due date extraction from natural language
-- 🔄 Automatic processing with watch mode
+- 🔄 Watch mode for automatic processing
 - ☁️ iCloud Drive sync between devices
 
 ## Setup
@@ -43,17 +44,12 @@ git clone git@github.com:ihlamury/voice-memo-reminders.git
 cd voice-memo-reminders
 pip install -r requirements.txt
 
-
-### 2. Configure API Key
-
+### 2. Configure API Keys
+Create a .env file with your API keys:
 CLAUDE_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 
-### 3. Test the System
-# Test with sample file
-python process_file.py
-
-# Test with iCloud Drive
-python process_icloud.py
-
-# Run in watch mode for automatic processing
-python process_icloud.py watch
+### 3. Set Up iCloud Drive Folders
+The script automatically creates these folders:
+Input: ~/Library/Mobile Documents/com~apple~CloudDocs/VoiceMemos/input/
+Output: ~/Library/Mobile Documents/com~apple~CloudDocs/VoiceMemos/output/

@@ -6,6 +6,7 @@ Works with native Voice Memos app - no paid apps required
 from src.audio_transcriber import AudioTranscriber
 from src.voice_processor import VoiceProcessor
 from src.reminder_manager import ReminderManager
+from src.calendar_manager import CalendarManager
 import os
 import json
 import time
@@ -60,7 +61,13 @@ def process_audio_file(audio_path):
         reminder_manager = ReminderManager()
         formatted_results = reminder_manager.format_reminders(categorized_tasks)
         
-        # Step 4: Save results
+        # Step 4: Create Google Calendar events
+        print("📅 Creating calendar events...")
+        from src.calendar_manager import CalendarManager
+        calendar_manager = CalendarManager()
+        calendar_manager.create_events_from_json(formatted_results)
+        
+        # Step 5: Save results to file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         input_basename = os.path.splitext(os.path.basename(audio_path))[0]
         output_filename = f"{input_basename}_processed_{timestamp}.json"
@@ -70,9 +77,6 @@ def process_audio_file(audio_path):
             f.write(formatted_results)
         
         print(f"✅ Results saved: {os.path.basename(output_path)}")
-        
-        # Optionally, archive or delete processed audio
-        # os.remove(audio_path)  # Uncomment to auto-delete after processing
         
         return output_path
         

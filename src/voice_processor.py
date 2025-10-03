@@ -30,21 +30,44 @@ class VoiceProcessor:
         prompt = f"""
         Analyze this voice memo transcription and extract actionable tasks.
         For each task, identify:
-        - The task description
-        - Priority (high, medium, low)
-        - Category (work, personal, shopping, health, etc.)
-        - Due date/time if mentioned
-        
+        - The task description (clear, concise)
+        - Priority (high, medium, low, urgent)
+        - Category from this list:
+        * work - professional tasks, meetings, projects
+        * personal - personal errands, self-care, appointments
+        * shopping - groceries, purchases, retail
+        * health - medical appointments, fitness, wellness
+        * finance - bills, banking, investments
+        * home - household chores, maintenance, repairs
+        * family - family-related tasks, holidays
+        * social - events, gatherings, friends
+        * learning - courses, reading, skill development
+        * calls - phone calls, video calls
+        * emails - email-related tasks
+        * travel - trips, bookings, transportation
+        * other - anything that doesn't fit above categories
+        - Due date/time if mentioned (preserve exact phrasing like "tomorrow", "Friday at 2pm", "next week")
+
+        Use context clues to infer the correct category. Examples:
+        - "buy milk" → shopping
+        - "pay electricity bill" → finance
+        - "call doctor" → health
+        - "fix leaky faucet" → home
+        - "birthday party for Sarah" → social
+        - "gym session" → health
+        - "quarterly review meeting" → work
+        - "read that book" → learning
+
         Transcription:
         {transcription_text}
-        
+
         Return the results in JSON format like this:
         {{
             "tasks": [
                 {{
                     "description": "task description",
                     "priority": "medium",
-                    "category": "personal",
+                    "category": "category_name",
                     "due_date": "tomorrow" or null
                 }}
             ]

@@ -90,7 +90,7 @@ class CalendarManager:
     
     def estimate_duration(self, task_description, category):
         """
-        Estimate task duration based on type
+        Estimate task duration based on type and category
         
         Args:
             task_description (str): Task description
@@ -101,20 +101,38 @@ class CalendarManager:
         """
         description_lower = task_description.lower()
         
-        # Quick tasks
-        if any(word in description_lower for word in ['call', 'email', 'text', 'message']):
-            return 30
+        # Category-based defaults
+        category_durations = {
+            'calls': 30,
+            'emails': 15,
+            'shopping': 60,
+            'health': 60,
+            'finance': 30,
+            'home': 90,
+            'social': 120,
+            'learning': 60,
+            'travel': 180,
+            'work': 60
+        }
         
-        # Shopping/errands
-        if category == 'shopping' or 'buy' in description_lower:
-            return 60
+        # Quick tasks (override category)
+        if any(word in description_lower for word in ['quick', 'briefly', 'check']):
+            return 15
         
-        # Meetings
+        # Specific keywords
         if 'meeting' in description_lower:
             return 60
+        if 'appointment' in description_lower or 'doctor' in description_lower:
+            return 60
+        if 'gym' in description_lower or 'workout' in description_lower:
+            return 60
+        if 'call' in description_lower or 'phone' in description_lower:
+            return 30
+        if 'email' in description_lower:
+            return 15
         
-        # Default
-        return 30
+        # Use category default or fallback to 30
+        return category_durations.get(category, 30)
     
     def create_event(self, task, calendar_id='primary'):
         """
@@ -169,9 +187,10 @@ class CalendarManager:
     def _get_color_for_priority(self, priority):
         """Map priority to Google Calendar color"""
         colors = {
+            'urgent': '11',    # Red
             'high': '11',      # Red
             'medium': '5',     # Yellow
-            'low': '2'         # Green
+            'low': '10'        # Green/Blue
         }
         return colors.get(priority.lower(), '5')
     

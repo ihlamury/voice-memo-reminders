@@ -134,20 +134,36 @@ class CalendarManager:
         # Use category default or fallback to 30
         return category_durations.get(category, 30)
     
-    def create_event(self, task, calendar_id='primary'):
+    def _get_color_for_priority(self, priority):
+        """Map priority to Google Calendar color"""
+        colors = {
+            'urgent': '11',    # Red
+            'high': '11',      # Red
+            'medium': '5',     # Yellow
+            'low': '10'        # Green/Blue
+        }
+        return colors.get(priority.lower(), '5')
+    
+    def _create_event_with_time(self, task, start_hour, calendar_id='primary'):
         """
-        Create a Google Calendar event from a task
+        Create event with specific start hour
         
         Args:
-            task (dict): Task with title, category, dueDate, priority
-            calendar_id (str): Google Calendar ID (default: primary)
+            task (dict): Task details
+            start_hour (float): Hour to start (e.g., 9.5 for 9:30 AM)
+            calendar_id (str): Calendar ID
             
         Returns:
-            dict: Created event or None if failed
+            dict: Created event or None
         """
         try:
-            # Parse date
-            start_time = self.parse_natural_date(task.get('dueDate'))
+            # Parse base date
+            base_date = self.parse_natural_date(task.get('dueDate'))
+            
+            # Set specific time
+            hour = int(start_hour)
+            minute = int((start_hour % 1) * 60)
+            start_time = base_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
             
             # Estimate duration
             duration = self.estimate_duration(
@@ -162,7 +178,7 @@ class CalendarManager:
                 'description': task.get('notes', ''),
                 'start': {
                     'dateTime': start_time.isoformat(),
-                    'timeZone': 'America/Los_Angeles',  # Change to your timezone
+                    'timeZone': 'America/Los_Angeles',
                 },
                 'end': {
                     'dateTime': end_time.isoformat(),
@@ -184,16 +200,6 @@ class CalendarManager:
             print(f"   ❌ Error creating event: {error}")
             return None
     
-    def _get_color_for_priority(self, priority):
-        """Map priority to Google Calendar color"""
-        colors = {
-            'urgent': '11',    # Red
-            'high': '11',      # Red
-            'medium': '5',     # Yellow
-            'low': '10'        # Green/Blue
-        }
-        return colors.get(priority.lower(), '5')
-    
     def create_events_from_json(self, json_data):
         """
         Create multiple events from formatted JSON
@@ -214,25 +220,29 @@ class CalendarManager:
         
         print(f"\n📅 Creating {len(reminders)} calendar event(s)...")
         
+        # Group tasks by date to handle time conflicts
+        tasks_by_date = {}
         for reminder in reminders:
-            event = self.create_event(reminder)
-            if event:
-                created_events.append(event)
+            date_key = reminder.get('dueDate', 'tomorrow')
+            if date_key not in tasks_by_date:
+                tasks_by_date[date_key] = []
+            tasks_by_date[date_key].append(reminder)
+        
+        # Process each date group
+        for date_key, tasks in tasks_by_date.items():
+            start_hour = 9  # Start at 9 AM for tasks on same day
+            
+            for task in tasks:
+                # Create event with staggered time
+                event = self._create_event_with_time(task, start_hour)
+                if event:
+                    created_events.append(event)
+                    
+                    # Increment start time for next task
+                    duration = self.estimate_duration(
+                        task.get('title', ''),
+                        task.get('category', '')
+                    )
+                    start_hour += (duration / 60)  # Convert minutes to hours
         
         return created_events
-
-if __name__ == "__main__":
-    # Test the calendar manager
-    manager = CalendarManager()
-    
-    # Test event
-    test_task = {
-        "title": "Test: Buy groceries",
-        "notes": "Category: shopping\nPriority: medium",
-        "dueDate": "tomorrow",
-        "priority": "medium",
-        "category": "shopping"
-    }
-    
-    manager.create_event(test_task)
-    print("\nCheck your Google Calendar!")
